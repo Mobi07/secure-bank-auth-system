@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 
+	"github.com/bytedance/gopkg/util/logger"
 	"github.com/mobi07/secure_bank_auth/internal/auth"
 	"github.com/mobi07/secure_bank_auth/internal/domain"
 	"github.com/mobi07/secure_bank_auth/internal/repository"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -69,6 +71,9 @@ func (s *authService) Login(ctx context.Context, email, password string) (string
 		if errors.Is(err, repository.ErrNotFound) {
 			return "", repository.ErrInvalidCredentials
 		}
+
+		logger.Error("Login: failed to get user by email", zap.Error(err))
+		return "", err
 	}
 
 	if !user.IsActive {
@@ -83,6 +88,7 @@ func (s *authService) Login(ctx context.Context, email, password string) (string
 	// JWT generation will be implemented next.
 	token, err := s.jwtService.GenerateAccessToken(user)
 	if err != nil {
+		logger.Error("Login: failed to generate access token", zap.Error(err))
 		return "", err
 	}
 

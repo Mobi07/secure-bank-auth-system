@@ -4,7 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mobi07/secure_bank_auth/internal/config"
 	"github.com/mobi07/secure_bank_auth/internal/database"
+	"github.com/mobi07/secure_bank_auth/internal/domain"
+	"github.com/mobi07/secure_bank_auth/internal/handler"
 	"github.com/mobi07/secure_bank_auth/internal/logger"
+	"github.com/mobi07/secure_bank_auth/internal/middleware"
 	"go.uber.org/zap"
 )
 
@@ -16,13 +19,50 @@ func main() {
 	defer log.Sync()
 
 	cfg := config.Load()
+
 	db, err := database.NewPostgres(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal("database initialization failed: ", zap.Error(err))
 	}
 	defer db.Close()
 
+	// jwtService := auth.NewJWTService(
+	// 	cfg.JWTSecret,
+	// 	15*time.Minute,
+	// )
+
+	// userRepo := postgres.NewUserRepository(db)
+
+	// authService := service.NewAuthService(
+	// 	userRepo,
+	// 	jwtService,
+	// )
+
+	authHandler := handler.NewAuthHandler()
+	dashboardHandler := handler.NewDashboardHandler()
+	adminHandler := handler.NewAdminHandler()
+
 	router := gin.Default()
+
+	api := router.Group("/api/v1")
+
+	// Public
+	api.POST("/auth/register", authHandler.Register)
+	api.POST("/auth/login", authHandler.Login)
+
+	// Authenticated
+	protected := api.Group("/")
+	protected.Use()
+
+	protected.GET("/dashboard", dashboardHandler.GetDashboard)
+
+	// Admin
+	admin := api.Group("/admin")
+	admin.Use(
+		middleware.RequireRole(domain.RoleAdmin),
+	)
+
+	admin.GET("/users", adminHandler.GetUsers)
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
