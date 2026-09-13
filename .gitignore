@@ -1,0 +1,21 @@
+# Environment variables
+.env
+.env.*
+
+# Dependencies
+vendor/
+
+# Build output
+bin/
+tmp/
+dist/
+
+# OS files
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
