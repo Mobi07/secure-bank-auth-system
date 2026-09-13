@@ -1,11 +1,15 @@
 package config
 
+import "os"
+
 type Config struct {
 	DatabaseURL string
+	JWTSecret   string
 }
 
 func Load() Config {
 	return Config{
-		DatabaseURL: "postgres://securebank:mobi123@localhost:5432/securebank",
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+		JWTSecret:   os.Getenv("JWT_SECRET"),
 	}
 }

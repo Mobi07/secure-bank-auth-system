@@ -1,13 +1,18 @@
 package main
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
+	"github.com/mobi07/secure_bank_auth/internal/auth"
 	"github.com/mobi07/secure_bank_auth/internal/config"
 	"github.com/mobi07/secure_bank_auth/internal/database"
 	"github.com/mobi07/secure_bank_auth/internal/domain"
 	"github.com/mobi07/secure_bank_auth/internal/handler"
 	"github.com/mobi07/secure_bank_auth/internal/logger"
 	"github.com/mobi07/secure_bank_auth/internal/middleware"
+	"github.com/mobi07/secure_bank_auth/internal/repository/postgres"
+	"github.com/mobi07/secure_bank_auth/internal/service"
 	"go.uber.org/zap"
 )
 
@@ -26,19 +31,19 @@ func main() {
 	}
 	defer db.Close()
 
-	// jwtService := auth.NewJWTService(
-	// 	cfg.JWTSecret,
-	// 	15*time.Minute,
-	// )
+	jwtService := auth.NewJWTService(
+		cfg.JWTSecret,
+		15*time.Minute,
+	)
 
-	// userRepo := postgres.NewUserRepository(db)
+	userRepo := postgres.NewUserRepository(db)
 
-	// authService := service.NewAuthService(
-	// 	userRepo,
-	// 	jwtService,
-	// )
+	authService := service.NewAuthService(
+		userRepo,
+		jwtService,
+	)
 
-	authHandler := handler.NewAuthHandler()
+	authHandler := handler.NewAuthHandler(authService)
 	dashboardHandler := handler.NewDashboardHandler()
 	adminHandler := handler.NewAdminHandler()
 
