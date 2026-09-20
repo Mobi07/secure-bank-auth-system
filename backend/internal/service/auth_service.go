@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/bytedance/gopkg/util/logger"
 	"github.com/mobi07/secure_bank_auth/internal/auth"
 	"github.com/mobi07/secure_bank_auth/internal/domain"
+	appErrors "github.com/mobi07/secure_bank_auth/internal/errors"
 	"github.com/mobi07/secure_bank_auth/internal/repository"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -20,12 +20,14 @@ type AuthService interface {
 type authService struct {
 	userRepo   repository.UserRepository
 	jwtService *auth.JWTService
+	logger     *zap.Logger ``
 }
 
-func NewAuthService(userRepo repository.UserRepository, jwtService *auth.JWTService) AuthService {
+func NewAuthService(userRepo repository.UserRepository, jwtService *auth.JWTService, logger *zap.Logger) AuthService {
 	return &authService{
 		userRepo:   userRepo,
 		jwtService: jwtService,
+		logger:     logger,
 	}
 }
 
@@ -69,26 +71,26 @@ func (s *authService) Login(ctx context.Context, email, password string) (string
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return "", repository.ErrInvalidCredentials
+			return "", appErrors.ErrInvalidCredentials
 		}
 
-		logger.Error("Login: failed to get user by email", zap.Error(err))
+		s.logger.Error("Login: failed to get user by email", zap.Error(err))
 		return "", err
 	}
 
 	if !user.IsActive {
-		return "", repository.ErrInvalidCredentials
+		return "", appErrors.ErrInvalidCredentials
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
-		return "", repository.ErrInvalidCredentials
+		return "", appErrors.ErrInvalidCredentials
 	}
 
 	// JWT generation will be implemented next.
 	token, err := s.jwtService.GenerateAccessToken(user)
 	if err != nil {
-		logger.Error("Login: failed to generate access token", zap.Error(err))
+		s.logger.Error("Login: failed to generate access token", zap.Error(err))
 		return "", err
 	}
 

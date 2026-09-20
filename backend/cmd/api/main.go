@@ -41,6 +41,7 @@ func main() {
 	authService := service.NewAuthService(
 		userRepo,
 		jwtService,
+		log,
 	)
 
 	authHandler := handler.NewAuthHandler(authService)

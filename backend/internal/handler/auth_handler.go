@@ -48,6 +48,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 				"error": "internal server error",
 			})
 		}
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
