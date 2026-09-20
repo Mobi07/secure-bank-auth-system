@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/mobi07/secure_bank_auth/internal/auth"
 	"github.com/mobi07/secure_bank_auth/internal/domain"
@@ -20,7 +21,7 @@ type AuthService interface {
 type authService struct {
 	userRepo   repository.UserRepository
 	jwtService *auth.JWTService
-	logger     *zap.Logger ``
+	logger     *zap.Logger
 }
 
 func NewAuthService(userRepo repository.UserRepository, jwtService *auth.JWTService, logger *zap.Logger) AuthService {
@@ -33,6 +34,9 @@ func NewAuthService(userRepo repository.UserRepository, jwtService *auth.JWTServ
 
 func (s *authService) Register(ctx context.Context, fullName, email, password string) (*domain.User, error) {
 
+	email = strings.ToLower(strings.TrimSpace(email))
+	fullName = strings.TrimSpace(fullName)
+
 	// check user already exists
 	_, err := s.userRepo.GetByEmail(ctx, email)
 	if err == nil {
@@ -40,12 +44,14 @@ func (s *authService) Register(ctx context.Context, fullName, email, password st
 	}
 
 	if !errors.Is(err, repository.ErrNotFound) {
+		s.logger.Error("Register: failed to check if user exists", zap.Error(err))
 		return nil, err
 	}
 
 	// hash the password
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		s.logger.Error("Register: failed to hash password", zap.Error(err))
 		return nil, err
 	}
 
@@ -60,6 +66,7 @@ func (s *authService) Register(ctx context.Context, fullName, email, password st
 	// insert into db
 	err = s.userRepo.Create(ctx, user)
 	if err != nil {
+		s.logger.Error("Register: failed to create user", zap.Error(err))
 		return nil, err
 	}
 

@@ -11,8 +11,13 @@ import (
 	"github.com/mobi07/secure_bank_auth/internal/domain"
 )
 
+type JWTValidator interface {
+	ValidateAccessToken(token string) (*auth.Claims, error)
+}
+
 func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		authHeader := c.GetHeader("Authorization")
 
 		if authHeader == "" {

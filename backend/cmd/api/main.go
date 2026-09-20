@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/mobi07/secure_bank_auth/internal/auth"
 	"github.com/mobi07/secure_bank_auth/internal/config"
 	"github.com/mobi07/secure_bank_auth/internal/database"
@@ -23,7 +24,14 @@ func main() {
 	}
 	defer log.Sync()
 
-	cfg := config.Load()
+	if err := godotenv.Load("../.env"); err != nil {
+		log.Error("Root .env not found; using system environment variables")
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("configuration initialization failed", zap.Error(err))
+	}
 
 	db, err := database.NewPostgres(cfg.DatabaseURL)
 	if err != nil {
@@ -52,13 +60,15 @@ func main() {
 
 	api := router.Group("/api/v1")
 
+	auth := api.Group("/auth")
+
 	// Public
-	api.POST("/auth/register", authHandler.Register)
-	api.POST("/auth/login", authHandler.Login)
+	auth.POST("/auth/register", authHandler.Register)
+	auth.POST("/auth/login", authHandler.Login)
 
 	// Authenticated
 	protected := api.Group("/")
-	protected.Use()
+	protected.Use(middleware.AuthMiddleware(jwtService))
 
 	protected.GET("/dashboard", dashboardHandler.GetDashboard)
 

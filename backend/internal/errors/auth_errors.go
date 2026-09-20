@@ -9,4 +9,5 @@ var (
 	ErrInvalidToken       = errors.New("invalid token")
 	ErrExpiredToken       = errors.New("token expired")
 	ErrUnauthorized       = errors.New("unauthorized")
+	ErrAlreadyExists      = errors.New("user already exists")
 )

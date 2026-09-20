@@ -21,8 +21,40 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "admin user management endpoint",
+	var req dto.RegisterRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request",
+		})
+		return
+	}
+
+	user, err := h.authService.Register(c.Request.Context(), req.FullName, req.Email, req.Password)
+	if err != nil {
+		switch {
+		case errors.Is(err, appErrors.ErrAlreadyExists):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "user already exists",
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "internal server error",
+			})
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "user registered successfully",
+		"user": gin.H{
+			"id":         user.Id,
+			"full_name":  user.Fullname,
+			"email":      user.Email,
+			"role":       user.Role,
+			"is_active":  user.IsActive,
+			"created_at": user.CreatedAt,
+		},
 	})
 }
 
